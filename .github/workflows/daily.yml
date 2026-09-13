@@ -37,6 +37,7 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add docs/index.html data/universe.csv
+          git add docs/index.html
+          [ -f data/universe.csv ] && git add data/universe.csv || true
           git diff --quiet --cached || git commit -m "Update daily report $(date +'%Y-%m-%d')"
           git push
