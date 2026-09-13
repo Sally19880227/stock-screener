@@ -1,0 +1,42 @@
+name: Daily Stock Screening
+
+on:
+  schedule:
+    # UTC 21:30 = JST 6:30（平日朝、寄り付き前に実行）
+    - cron: "30 21 * * 0-4"
+  workflow_dispatch: {}  # 手動実行用ボタンも有効化
+
+permissions:
+  contents: write  # docs/ へのコミット・pushに必要
+
+jobs:
+  screen-and-mail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Python セットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 依存ライブラリインストール
+        run: pip install -r requirements.txt
+
+      - name: スクリーニング実行 & レポート生成 & メール送信
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          REPORT_URL: ${{ secrets.REPORT_URL }}
+        run: python scripts/main.py
+
+      - name: レポートをコミット（GitHub Pages用）
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add docs/index.html data/universe.csv
+          git diff --quiet --cached || git commit -m "Update daily report $(date +'%Y-%m-%d')"
+          git push
